@@ -4,27 +4,33 @@ import dotenv from "dotenv";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 import authRoutes from "./routes/auth/auth";
+import municipalitiesRoutes from "./routes/municipalities/municipalities";
 import { verifyJWT } from "./middlewares/auth";
 
 dotenv.config();
 const app = express();
 
-// Permitir múltiples orígenes en CORS
+// Configuración de CORS dinámica
+const allowAllOrigins = process.env.CORS_ALLOW_ALL_ORIGINS === "True";
 const origins = (process.env.CORS_ORIGIN || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 
 app.use(
-  cors({
-    origin: (incomingOrigin, callback) => {
-      if (!incomingOrigin || origins.includes(incomingOrigin)) {
-        return callback(null, true);
-      }
-      callback(new Error(`CORS error: ${incomingOrigin} not allowed`));
-    },
-    credentials: true,
-  })
+  cors(
+    allowAllOrigins
+      ? { credentials: true } // Permite todos los orígenes
+      : {
+          origin: (incomingOrigin, callback) => {
+            if (!incomingOrigin || origins.includes(incomingOrigin)) {
+              return callback(null, true);
+            }
+            callback(new Error(`CORS error: ${incomingOrigin} not allowed`));
+          },
+          credentials: true,
+        }
+  )
 );
 
 app.use(express.json());
@@ -32,8 +38,9 @@ app.use(express.json());
 // Documentación Swagger
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Mount auth
+// Mount routes
 app.use("/api/auth", authRoutes);
+app.use("/api/municipalities", municipalitiesRoutes);
 
 // Ruta protegida con JWT
 
