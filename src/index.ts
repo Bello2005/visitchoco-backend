@@ -5,6 +5,8 @@ import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 import authRoutes from "./routes/auth/auth";
 import municipalitiesRoutes from "./routes/municipalities/municipalities";
+import indigenousRoutes from "./routes/indigenous/indigenous";
+import weatherRoutes from "./routes/weather/weather";
 import { verifyJWT } from "./middlewares/auth";
 
 dotenv.config();
@@ -41,6 +43,9 @@ app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Mount routes
 app.use("/api/auth", authRoutes);
 app.use("/api/municipalities", municipalitiesRoutes);
+app.use("/api/ethnic", require("./routes/ethnic/ethnic").default);
+app.use("/api/indigenous", indigenousRoutes);
+app.use("/api/weather", weatherRoutes);
 
 // Ruta protegida con JWT
 
