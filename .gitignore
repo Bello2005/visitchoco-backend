@@ -38,3 +38,4 @@ Thumbs.db
 
 # Coverage directory (if usas Jest u otra herramienta)
 coverage/
+.env.local

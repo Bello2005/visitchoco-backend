@@ -3,11 +3,11 @@ import { config } from "dotenv";
 
 config();
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL || "http://localhost:5173",
-  "https://visitchoco-frontend.vercel.app",
-  "http://localhost:5173",
-];
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+const allowedOrigins = isDevelopment
+  ? ['http://localhost:5173', 'http://127.0.0.1:5173']
+  : ['https://visitchoco-frontend.vercel.app'];
 
 const corsOptions = {
   origin: (origin: any, callback: any) => {
