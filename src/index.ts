@@ -36,11 +36,11 @@ app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Rutas públicas
 app.use("/api/auth", authRoutes);
+app.use("/api/municipalities", municipalitiesRoutes);
+app.use("/api/indigenous", indigenousRoutes);
+app.use("/api/ethnic", require("./routes/ethnic/ethnic").default);
 
-// Rutas protegidas
-app.use("/api/municipalities", verifyJWT, municipalitiesRoutes);
-app.use("/api/ethnic", verifyJWT, require("./routes/ethnic/ethnic").default);
-app.use("/api/indigenous", verifyJWT, indigenousRoutes);
+// Rutas protegidas (requieren autenticación)
 app.use("/api/weather", verifyJWT, weatherRoutes);
 app.use("/api", verifyJWT, dashboardRoutes);
 
