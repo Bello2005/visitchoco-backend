@@ -43,6 +43,10 @@ import { verifyJWT } from "../../middlewares/auth";
 
 const router = Router();
 
+// Rutas públicas
+router.post("/login", login);
+router.post("/register", register);
+
 /**
  * @openapi
  * /api/auth/login:

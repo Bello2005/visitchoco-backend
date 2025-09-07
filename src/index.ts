@@ -35,11 +35,9 @@ app.use(express.json());
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Rutas públicas
-app.use("/api/auth/login", authRoutes);
-app.use("/api/auth/register", authRoutes);
+app.use("/api/auth", authRoutes);
 
 // Rutas protegidas
-app.use("/api/auth", verifyJWT, authRoutes);
 app.use("/api/municipalities", verifyJWT, municipalitiesRoutes);
 app.use("/api/ethnic", verifyJWT, require("./routes/ethnic/ethnic").default);
 app.use("/api/indigenous", verifyJWT, indigenousRoutes);
