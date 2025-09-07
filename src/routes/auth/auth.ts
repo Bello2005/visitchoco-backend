@@ -107,13 +107,26 @@ router.get("/user/dashboard", verifyJWT, (req, res) => {
   const email = req.user?.email || "";
   const role = req.user?.role || "";
   if (role !== "user") {
-    return res
-      .status(403)
-      .json({
-        message: "Acceso denegado: solo usuarios pueden ver este dashboard.",
-      });
+    return res.status(403).json({
+      message: "Acceso denegado: solo usuarios pueden ver este dashboard.",
+    });
   }
   res.json({ message: `Bienvenido, usuario ${email}` });
+});
+
+router.get("/admin/dashboard", verifyJWT, (req, res) => {
+  const email = req.user?.email || "";
+  const role = req.user?.role || "";
+  if (role !== "admin") {
+    return res.status(403).json({
+      message:
+        "Acceso denegado: solo administradores pueden ver este dashboard.",
+    });
+  }
+  res.json({
+    message: `Bienvenido, administrador ${email}`,
+    role: "admin",
+  });
 });
 
 export default router;
