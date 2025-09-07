@@ -21,17 +21,17 @@ const pool = new Pool(
 );
 
 // Test the connection
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
+pool.on("error", (err) => {
+  console.error("Unexpected error on idle client", err);
   process.exit(-1);
 });
 
 // Verify connection
 pool.connect((err, client, done) => {
   if (err) {
-    console.error('Error connecting to the database:', err);
+    console.error("Error connecting to the database:", err);
   } else {
-    console.log('Successfully connected to database');
+    console.log("Successfully connected to database");
     done();
   }
 });
