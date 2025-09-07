@@ -13,27 +13,17 @@ dotenv.config();
 const app = express();
 
 // Configuración de CORS dinámica
-const allowAllOrigins = process.env.CORS_ALLOW_ALL_ORIGINS === "True";
 const origins = (process.env.CORS_ORIGIN || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 
-app.use(
-  cors(
-    allowAllOrigins
-      ? { credentials: true } // Permite todos los orígenes
-      : {
-          origin: (incomingOrigin, callback) => {
-            if (!incomingOrigin || origins.includes(incomingOrigin)) {
-              return callback(null, true);
-            }
-            callback(new Error(`CORS error: ${incomingOrigin} not allowed`));
-          },
-          credentials: true,
-        }
-  )
-);
+app.use(cors({
+  origin: origins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
 
