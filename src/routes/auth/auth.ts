@@ -104,29 +104,59 @@ router.post("/login", login);
  *         description: No autorizado
  */
 router.get("/user/dashboard", verifyJWT, (req, res) => {
-  const email = req.user?.email || "";
-  const role = req.user?.role || "";
-  if (role !== "user") {
-    return res.status(403).json({
-      message: "Acceso denegado: solo usuarios pueden ver este dashboard.",
+  try {
+    console.log("[DASHBOARD] Usuario accediendo al dashboard:", req.user);
+    const email = req.user?.email || "";
+    const role = req.user?.role || "";
+
+    if (role !== "user") {
+      console.log("[DASHBOARD] Acceso denegado - rol incorrecto:", role);
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "Acceso denegado: solo usuarios pueden ver este dashboard.",
+      });
+    }
+
+    res.json({
+      message: `Bienvenido, usuario ${email}`,
+      role: role,
+    });
+  } catch (error) {
+    console.error("[DASHBOARD] Error en dashboard de usuario:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Error al procesar la solicitud",
     });
   }
-  res.json({ message: `Bienvenido, usuario ${email}` });
 });
 
 router.get("/admin/dashboard", verifyJWT, (req, res) => {
-  const email = req.user?.email || "";
-  const role = req.user?.role || "";
-  if (role !== "admin") {
-    return res.status(403).json({
-      message:
-        "Acceso denegado: solo administradores pueden ver este dashboard.",
+  try {
+    console.log("[DASHBOARD] Administrador accediendo al dashboard:", req.user);
+    const email = req.user?.email || "";
+    const role = req.user?.role || "";
+
+    if (role !== "admin") {
+      console.log("[DASHBOARD] Acceso denegado - rol incorrecto:", role);
+      return res.status(403).json({
+        error: "Forbidden",
+        message:
+          "Acceso denegado: solo administradores pueden ver este dashboard.",
+      });
+    }
+
+    res.json({
+      message: `Bienvenido, administrador ${email}`,
+      role: role,
+      isAuthenticated: true,
+    });
+  } catch (error) {
+    console.error("[DASHBOARD] Error en dashboard de admin:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Error al procesar la solicitud",
     });
   }
-  res.json({
-    message: `Bienvenido, administrador ${email}`,
-    role: "admin",
-  });
 });
 
 export default router;

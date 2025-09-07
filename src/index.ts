@@ -7,37 +7,44 @@ import authRoutes from "./routes/auth/auth";
 import municipalitiesRoutes from "./routes/municipalities/municipalities";
 import indigenousRoutes from "./routes/indigenous/indigenous";
 import weatherRoutes from "./routes/weather/weather";
+import dashboardRoutes from "./routes/dashboard/dashboard";
 import { verifyJWT } from "./middlewares/auth";
 
 dotenv.config();
 const app = express();
 
-// Configuración de CORS dinámica
-const origins = (process.env.CORS_ORIGIN || "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+// Configuración de CORS
+const corsOptions = {
+  origin: ["https://visitchoco-frontend.vercel.app", "http://localhost:5173"],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Origin",
+    "X-Requested-With",
+    "Accept",
+  ],
+};
 
-app.use(
-  cors({
-    origin: origins,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
 // Documentación Swagger
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Mount routes
-app.use("/api/auth", authRoutes);
-app.use("/api/municipalities", municipalitiesRoutes);
-app.use("/api/ethnic", require("./routes/ethnic/ethnic").default);
-app.use("/api/indigenous", indigenousRoutes);
-app.use("/api/weather", weatherRoutes);
+// Rutas públicas
+app.use("/api/auth/login", authRoutes);
+app.use("/api/auth/register", authRoutes);
+
+// Rutas protegidas
+app.use("/api/auth", verifyJWT, authRoutes);
+app.use("/api/municipalities", verifyJWT, municipalitiesRoutes);
+app.use("/api/ethnic", verifyJWT, require("./routes/ethnic/ethnic").default);
+app.use("/api/indigenous", verifyJWT, indigenousRoutes);
+app.use("/api/weather", verifyJWT, weatherRoutes);
+app.use("/api", verifyJWT, dashboardRoutes);
 
 // Ruta protegida con JWT
 
