@@ -3,19 +3,27 @@ import { config } from "dotenv";
 
 config();
 
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = process.env.NODE_ENV === "development";
 
-const allowedOrigins = isDevelopment
-  ? ['http://localhost:5173', 'http://127.0.0.1:5173']
-  : ['https://visitchoco-frontend.vercel.app'];
+const isVercelDeployment = (origin: string): boolean => {
+  return origin.endsWith('.vercel.app') || origin === 'https://visitchoco-frontend.vercel.app';
+};
 
 const corsOptions = {
   origin: (origin: any, callback: any) => {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    // Permitir solicitudes en desarrollo
+    if (isDevelopment && (!origin || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1'))) {
       callback(null, true);
-    } else {
-      callback(new Error("No permitido por CORS"));
+      return;
     }
+
+    // Permitir solicitudes de dominios Vercel en producción
+    if (!isDevelopment && (!origin || isVercelDeployment(origin))) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('No permitido por CORS'));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
