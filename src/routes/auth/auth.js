@@ -1,3 +1,5 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * @openapi
  * /api/auth/login:
@@ -34,16 +36,13 @@
  *       '401':
  *         description: Credenciales inválidas
  */
-import { Router } from "express";
-import {
-  login,
-  register,
-  getAllUsers,
-} from "../../controllers/authController/authController";
-import { verifyJWT } from "../../middlewares/auth";
-
-const router = Router();
-
+const express_1 = require("express");
+const authController_1 = require("../../controllers/authController/authController");
+const auth_1 = require("../../middlewares/auth");
+const router = (0, express_1.Router)();
+// Rutas públicas
+router.post("/login", authController_1.login);
+router.post("/register", authController_1.register);
 /**
  * @openapi
  * /api/auth/login:
@@ -80,8 +79,7 @@ const router = Router();
  *       '401':
  *         description: Credenciales inválidas
  */
-router.post("/login", login);
-
+router.post("/login", authController_1.login);
 /**
  * @openapi
  * /api/user/dashboard:
@@ -104,64 +102,60 @@ router.post("/login", login);
  *       '401':
  *         description: No autorizado
  */
-router.get("/user/dashboard", verifyJWT, (req, res) => {
-  try {
-    console.log("[DASHBOARD] Usuario accediendo al dashboard:", req.user);
-    const email = req.user?.email || "";
-    const role = req.user?.role || "";
-
-    if (role !== "user") {
-      console.log("[DASHBOARD] Acceso denegado - rol incorrecto:", role);
-      return res.status(403).json({
-        error: "Forbidden",
-        message: "Acceso denegado: solo usuarios pueden ver este dashboard.",
-      });
+router.get("/user/dashboard", auth_1.verifyJWT, (req, res) => {
+    var _a, _b;
+    try {
+        console.log("[DASHBOARD] Usuario accediendo al dashboard:", req.user);
+        const email = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.email) || "";
+        const role = ((_b = req.user) === null || _b === void 0 ? void 0 : _b.role) || "";
+        if (role !== "user") {
+            console.log("[DASHBOARD] Acceso denegado - rol incorrecto:", role);
+            return res.status(403).json({
+                error: "Forbidden",
+                message: "Acceso denegado: solo usuarios pueden ver este dashboard.",
+            });
+        }
+        res.json({
+            message: `Bienvenido, usuario ${email}`,
+            role: role,
+        });
     }
-
-    res.json({
-      message: `Bienvenido, usuario ${email}`,
-      role: role,
-    });
-  } catch (error) {
-    console.error("[DASHBOARD] Error en dashboard de usuario:", error);
-    res.status(500).json({
-      error: "Internal Server Error",
-      message: "Error al procesar la solicitud",
-    });
-  }
-});
-
-router.get("/admin/dashboard", verifyJWT, (req, res) => {
-  try {
-    console.log("[DASHBOARD] Administrador accediendo al dashboard:", req.user);
-    const email = req.user?.email || "";
-    const role = req.user?.role || "";
-
-    if (role !== "admin") {
-      console.log("[DASHBOARD] Acceso denegado - rol incorrecto:", role);
-      return res.status(403).json({
-        error: "Forbidden",
-        message:
-          "Acceso denegado: solo administradores pueden ver este dashboard.",
-      });
+    catch (error) {
+        console.error("[DASHBOARD] Error en dashboard de usuario:", error);
+        res.status(500).json({
+            error: "Internal Server Error",
+            message: "Error al procesar la solicitud",
+        });
     }
-
-    res.json({
-      message: `Bienvenido, administrador ${email}`,
-      role: role,
-      isAuthenticated: true,
-    });
-  } catch (error) {
-    console.error("[DASHBOARD] Error en dashboard de admin:", error);
-    res.status(500).json({
-      error: "Internal Server Error",
-      message: "Error al procesar la solicitud",
-    });
-  }
 });
-
-export default router;
-
+router.get("/admin/dashboard", auth_1.verifyJWT, (req, res) => {
+    var _a, _b;
+    try {
+        console.log("[DASHBOARD] Administrador accediendo al dashboard:", req.user);
+        const email = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.email) || "";
+        const role = ((_b = req.user) === null || _b === void 0 ? void 0 : _b.role) || "";
+        if (role !== "admin") {
+            console.log("[DASHBOARD] Acceso denegado - rol incorrecto:", role);
+            return res.status(403).json({
+                error: "Forbidden",
+                message: "Acceso denegado: solo administradores pueden ver este dashboard.",
+            });
+        }
+        res.json({
+            message: `Bienvenido, administrador ${email}`,
+            role: role,
+            isAuthenticated: true,
+        });
+    }
+    catch (error) {
+        console.error("[DASHBOARD] Error en dashboard de admin:", error);
+        res.status(500).json({
+            error: "Internal Server Error",
+            message: "Error al procesar la solicitud",
+        });
+    }
+});
+exports.default = router;
 /**
  * @openapi
  * /api/auth/register:
@@ -187,41 +181,4 @@ export default router;
  *       '201':
  *         description: Usuario creado
  */
-router.post("/register", register);
-
-
-/**
- * @openapi
- * /api/auth/users:
- *   get:
- *     summary: Obtener todos los usuarios
- *     tags: [Auth]
- *     responses:
- *       '200':
- *         description: Lista de usuarios
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                     example: 1
- *                   name:
- *                     type: string
- *                     example: "Josser Córdoba"
- *                   email:
- *                     type: string
- *                     format: email
- *                     example: "admin@choco.com"
- *                   role:
- *                     type: string
- *                     example: "admin"
- *                   created_at:
- *                     type: string
- *                     format: date-time
- *                     example: "2025-09-15T21:32:45.123Z"
- */
-router.get("/users", getAllUsers);
+router.post("/register", authController_1.register);

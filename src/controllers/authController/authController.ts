@@ -29,7 +29,20 @@ const authController = {
       return res.status(401).json({ message: err.message });
     }
   },
+
+  getAllUsers: async (req: Request, res: Response) => {
+    try {
+      const result = await db.query(
+        "SELECT id, name, email, role, created_at FROM users ORDER BY id ASC"
+      );
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Error fetching users" });
+    }
+  },
 };
 
 export const register = authController.register;
 export const login = authController.login;
+export const getAllUsers = authController.getAllUsers;
