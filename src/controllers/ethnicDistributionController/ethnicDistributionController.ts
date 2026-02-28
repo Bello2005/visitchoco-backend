@@ -1,181 +1,72 @@
 import { Request, Response } from "express";
-import pool from "../../config/db";
+import { ethnicRepository } from "../../repositories/ethnicRepository";
 
-export interface EthnicDistribution {
-  id: number;
-  municipality_cod_dane: string;
-  year: number;
-  source: string;
-  race_code: string;
-  persons_count: number;
-  persons_percentage: number;
-  created_at: Date;
-  updated_at: Date;
-}
-
-// Obtener toda la distribución étnica
-export const getEthnicDistribution = async (req: Request, res: Response) => {
+export const getEthnicDistribution = async (_req: Request, res: Response) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        ed.*,
-        m.name as municipality_name,
-        m.zone as municipality_zone
-      FROM municipality_ethnic_distribution ed
-      JOIN municipalities m ON m.cod_dane = ed.municipality_cod_dane
-      ORDER BY ed.year DESC, m.name ASC
-    `);
-
-    res.json(result.rows);
+    const rows = await ethnicRepository.findAll();
+    res.json(rows);
   } catch (error) {
-    console.error("Error fetching ethnic distribution:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error("[ethnic] Error fetching all:", error);
+    res.status(500).json({ success: false, message: "Error interno del servidor" });
   }
 };
 
-// Obtener distribución étnica por municipio
-export const getEthnicDistributionByMunicipality = async (
-  req: Request,
-  res: Response
-) => {
-  const { codDane } = req.params;
+export const getEthnicDistributionByMunicipality = async (req: Request, res: Response) => {
+  const codDane = req.params.codDane as string;
 
   try {
-    const result = await pool.query(
-      `
-      SELECT 
-        ed.*,
-        m.name as municipality_name,
-        m.zone as municipality_zone
-      FROM municipality_ethnic_distribution ed
-      JOIN municipalities m ON m.cod_dane = ed.municipality_cod_dane
-      WHERE ed.municipality_cod_dane = $1
-      ORDER BY ed.year DESC
-    `,
-      [codDane]
-    );
+    const rows = await ethnicRepository.findByMunicipality(codDane);
 
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       return res.status(404).json({
-        error: "No se encontró distribución étnica para este municipio",
+        success: false,
+        message: "No se encontró distribución étnica para este municipio",
       });
     }
 
-    res.json(result.rows);
+    res.json(rows);
   } catch (error) {
-    console.error("Error fetching ethnic distribution by municipality:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error("[ethnic] Error fetching by municipality:", error);
+    res.status(500).json({ success: false, message: "Error interno del servidor" });
   }
 };
 
-// Obtener resumen étnico del último año disponible
-export const getLatestEthnicSummary = async (req: Request, res: Response) => {
+export const getLatestEthnicSummary = async (_req: Request, res: Response) => {
   try {
-    const result = await pool.query(`
-      WITH latest_year AS (
-        SELECT MAX(year) as max_year
-        FROM municipality_ethnic_distribution
-      )
-      SELECT 
-        ed.*,
-        m.name as municipality_name,
-        m.zone as municipality_zone,
-        m.lat,
-        m.lon,
-        m.geometry
-      FROM municipality_ethnic_distribution ed
-      JOIN municipalities m ON m.cod_dane = ed.municipality_cod_dane
-      JOIN latest_year ly ON ed.year = ly.max_year
-      ORDER BY m.name ASC
-    `);
-
-    res.json(result.rows);
+    const rows = await ethnicRepository.findLatestSummary();
+    res.json(rows);
   } catch (error) {
-    console.error("Error fetching latest ethnic summary:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error("[ethnic] Error fetching latest summary:", error);
+    res.status(500).json({ success: false, message: "Error interno del servidor" });
   }
 };
 
-// Obtener resumen total por etnia
-export const getTotalEthnicSummary = async (req: Request, res: Response) => {
+export const getTotalEthnicSummary = async (_req: Request, res: Response) => {
   try {
-    const result = await pool.query(`
-      WITH latest_year AS (
-        SELECT MAX(year) as max_year
-        FROM municipality_ethnic_distribution
-      )
-      SELECT 
-        race_code,
-        SUM(persons_count) as total_persons,
-        ROUND(AVG(persons_percentage), 2) as average_percentage,
-        COUNT(DISTINCT municipality_cod_dane) as municipalities_count
-      FROM municipality_ethnic_distribution
-      WHERE year = (SELECT max_year FROM latest_year)
-      GROUP BY race_code
-      ORDER BY total_persons DESC
-    `);
-
-    res.json(result.rows);
+    const rows = await ethnicRepository.findTotalSummary();
+    res.json(rows);
   } catch (error) {
-    console.error("Error fetching total ethnic summary:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error("[ethnic] Error fetching total summary:", error);
+    res.status(500).json({ success: false, message: "Error interno del servidor" });
   }
 };
 
-// Obtener distribución étnica por año
-export const getEthnicDistributionByYear = async (
-  req: Request,
-  res: Response
-) => {
+export const getEthnicDistributionByYear = async (_req: Request, res: Response) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        year,
-        race_code,
-        SUM(persons_count) as total_persons,
-        ROUND(AVG(persons_percentage), 2) as average_percentage
-      FROM municipality_ethnic_distribution
-      GROUP BY year, race_code
-      ORDER BY year DESC, total_persons DESC
-    `);
-
-    res.json(result.rows);
+    const rows = await ethnicRepository.findByYear();
+    res.json(rows);
   } catch (error) {
-    console.error("Error fetching ethnic distribution by year:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error("[ethnic] Error fetching by year:", error);
+    res.status(500).json({ success: false, message: "Error interno del servidor" });
   }
 };
 
-// Obtener estadísticas generales de distribución étnica
-export const getEthnicStats = async (req: Request, res: Response) => {
+export const getEthnicStats = async (_req: Request, res: Response) => {
   try {
-    const result = await pool.query(`
-      WITH latest_year AS (
-        SELECT MAX(year) as max_year
-        FROM municipality_ethnic_distribution
-      ),
-      stats AS (
-        SELECT
-          race_code,
-          COUNT(DISTINCT municipality_cod_dane) as municipalities_count,
-          MIN(persons_percentage) as min_percentage,
-          MAX(persons_percentage) as max_percentage,
-          ROUND(AVG(persons_percentage), 2) as avg_percentage,
-          SUM(persons_count) as total_population
-        FROM municipality_ethnic_distribution
-        WHERE year = (SELECT max_year FROM latest_year)
-        GROUP BY race_code
-      )
-      SELECT 
-        s.*,
-        ly.max_year as reference_year
-      FROM stats s, latest_year ly
-      ORDER BY s.total_population DESC
-    `);
-
-    res.json(result.rows);
+    const rows = await ethnicRepository.findStats();
+    res.json(rows);
   } catch (error) {
-    console.error("Error fetching ethnic statistics:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error("[ethnic] Error fetching stats:", error);
+    res.status(500).json({ success: false, message: "Error interno del servidor" });
   }
 };

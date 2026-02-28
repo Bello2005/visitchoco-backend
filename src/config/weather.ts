@@ -1,4 +1,7 @@
-export const OPENWEATHER_API_KEY = "b5acb68797f4414ff99923e999eb109b";
+export const OPENWEATHER_API_KEY = process.env.WEATHER_API_KEY ?? "";
+if (!OPENWEATHER_API_KEY) {
+  console.warn("[WEATHER] WEATHER_API_KEY no está definida en las variables de entorno");
+}
 export const OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
 
 // Parámetros por defecto para las peticiones a OpenWeather

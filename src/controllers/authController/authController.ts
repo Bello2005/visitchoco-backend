@@ -1,48 +1,64 @@
 import bcrypt from "bcrypt";
-import db from "../../config/db";
 import { Request, Response } from "express";
-
 import { authenticate } from "../../services/authService/authService";
+import { userRepository } from "../../repositories/userRepository";
+import { loginSchema, registerSchema } from "../../validators/authValidator";
 
-const authController = {
-  register: async (req: Request, res: Response) => {
-    const { name, email, password } = req.body;
+export const register = async (req: Request, res: Response) => {
+  const parsed = registerSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      success: false,
+      message: parsed.error.issues[0].message,
+    });
+  }
+
+  const { name, email, password } = parsed.data;
+
+  try {
     const hash = await bcrypt.hash(password, 10);
-    // Asume que el role_id por defecto es 2 (usuario normal)
-    await db.query(
-      "INSERT INTO users (name, email, password_hash, role_id) VALUES ($1, $2, $3, $4)",
-      [name, email, hash, 2]
-    );
-    res.status(201).json({ message: "User created" });
-  },
-  login: async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-    try {
-      // authenticate debe retornar solo el token, así que obtenemos el usuario para el rol
-      const user = await (
-        await import("../../models/Users/Users")
-      ).findUserByEmail(email);
-      if (!user) throw new Error("Invalid credentials");
-      const token = await authenticate(email, password);
-      return res.json({ token, role: user.role });
-    } catch (err: any) {
-      return res.status(401).json({ message: err.message });
+    await userRepository.create(name, email, hash);
+    res.status(201).json({ success: true, message: "Usuario creado exitosamente" });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "";
+    if (msg.includes("unique") || msg.includes("duplicate")) {
+      return res.status(409).json({ success: false, message: "El email ya está registrado" });
     }
-  },
-
-  getAllUsers: async (req: Request, res: Response) => {
-    try {
-      const result = await db.query(
-        "SELECT id, name, email, role, created_at FROM users ORDER BY id ASC"
-      );
-      res.json(result.rows);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Error fetching users" });
-    }
-  },
+    console.error("[auth] Error en registro:", error);
+    res.status(500).json({ success: false, message: "Error interno del servidor" });
+  }
 };
 
-export const register = authController.register;
-export const login = authController.login;
-export const getAllUsers = authController.getAllUsers;
+export const login = async (req: Request, res: Response) => {
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      success: false,
+      message: parsed.error.issues[0].message,
+    });
+  }
+
+  const { email, password } = parsed.data;
+
+  try {
+    const user = await userRepository.findByEmail(email);
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Credenciales inválidas" });
+    }
+    const token = await authenticate(email, password);
+    res.json({ token, role: user.role });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Credenciales inválidas";
+    res.status(401).json({ success: false, message });
+  }
+};
+
+export const getAllUsers = async (_req: Request, res: Response) => {
+  try {
+    const users = await userRepository.findAll();
+    res.json(users);
+  } catch (error) {
+    console.error("[auth] Error fetching users:", error);
+    res.status(500).json({ success: false, message: "Error interno del servidor" });
+  }
+};

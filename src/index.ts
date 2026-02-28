@@ -1,8 +1,8 @@
-import express from "express";
-import cors from "cors";
+import express, { NextFunction, Request, Response } from "express";
 import dotenv from "dotenv";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
+import { configureCors } from "./config/cors";
 import authRoutes from "./routes/auth/auth";
 import municipalitiesRoutes from "./routes/municipalities/municipalities";
 import indigenousRoutes from "./routes/indigenous/indigenous";
@@ -13,21 +13,8 @@ import { verifyJWT } from "./middlewares/auth";
 dotenv.config();
 const app = express();
 
-// Configuración de CORS
-const corsOptions = {
-  origin: ["https://visitchoco-frontend.vercel.app", "http://localhost:5173"],
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "Origin",
-    "X-Requested-With",
-    "Accept",
-  ],
-};
-
-app.use(cors(corsOptions));
+// CORS centralizado (config/cors.ts)
+configureCors(app);
 
 app.use(express.json());
 
@@ -44,35 +31,11 @@ app.use("/api/weather", weatherRoutes);
 // Rutas protegidas (requieren autenticación)
 app.use("/api", verifyJWT, dashboardRoutes);
 
-// Ruta protegida con JWT
-
-/**
- * @openapi
- * /api/admin/dashboard:
- *   get:
- *     summary: Dashboard de administrador (protegido)
- *     tags:
- *       - Admin
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       '200':
- *         description: Acceso permitido, muestra mensaje de bienvenida
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Bienvenido, usuario admin@choco.com
- *       '401':
- *         description: Token no enviado o inválido
- *       '403':
- *         description: Token inválido o expirado
- */
-app.get("/api/admin/dashboard", verifyJWT, (req, res) => {
-  res.json({ message: `Bienvenido, usuario ${req.user?.email}` });
+// Global error handler (Express 5 compatible — 4 parámetros obligatorios)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("[ERROR]", err.message);
+  res.status(500).json({ success: false, message: "Error interno del servidor" });
 });
 
 const PORT = process.env.PORT || 8000;

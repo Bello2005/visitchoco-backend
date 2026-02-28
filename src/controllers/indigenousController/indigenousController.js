@@ -8,111 +8,55 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getIndigenousReserveById = exports.getIndigenousReserves = exports.getIndigenousReservesByMunicipality = void 0;
-const db_1 = __importDefault(require("../../config/db"));
+exports.getIndigenousReservesByMunicipality = exports.getIndigenousReserveById = exports.getIndigenousReserves = void 0;
+const indigenousRepository_1 = require("../../repositories/indigenousRepository");
 const geojsonUtils_1 = require("../../utils/geojsonUtils");
-// Obtener reservas indígenas por municipio
-const getIndigenousReservesByMunicipality = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { codDane } = req.params;
+const getIndigenousReserves = (_req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const query = `
-      SELECT 
-        id,
-        name,
-        administrative_act_type,
-        administrative_act_number,
-        administrative_act_date,
-        total_area,
-        plan_number,
-        indigenous_people,
-        cod_dane,
-        lat,
-        lon,
-        ST_AsGeoJSON(territory_geom)::json as territory_geom
-      FROM indigenous_reserves
-      WHERE cod_dane = $1
-    `;
-        const result = yield db_1.default.query(query, [codDane]);
-        const transformedRows = result.rows.map(geojsonUtils_1.transformToGeoJSON).filter(Boolean);
-        res.json(transformedRows);
+        const rows = yield indigenousRepository_1.indigenousRepository.findAll();
+        res.json(rows.map(geojsonUtils_1.transformToGeoJSON).filter(Boolean));
     }
     catch (error) {
-        console.error("Error al obtener reservas indígenas por municipio:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
-    }
-});
-exports.getIndigenousReservesByMunicipality = getIndigenousReservesByMunicipality;
-// Obtener todas las reservas indígenas
-const getIndigenousReserves = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const query = `
-      SELECT 
-        id,
-        name,
-        administrative_act_type,
-        administrative_act_number,
-        administrative_act_date,
-        total_area,
-        plan_number,
-        indigenous_people,
-        cod_dane,
-        lat,
-        lon,
-        ST_AsGeoJSON(territory_geom)::json as territory_geom
-      FROM indigenous_reserves
-    `;
-        const result = yield db_1.default.query(query);
-        const transformedRows = result.rows.map(geojsonUtils_1.transformToGeoJSON).filter(Boolean);
-        res.json(transformedRows);
-    }
-    catch (error) {
-        console.error("Error al obtener reservas indígenas:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        console.error("[indigenous] Error fetching all:", error);
+        res.status(500).json({ success: false, message: "Error interno del servidor" });
     }
 });
 exports.getIndigenousReserves = getIndigenousReserves;
-// Obtener una reserva indígena por ID
 const getIndigenousReserveById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id } = req.params;
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+        return res.status(400).json({ success: false, message: "ID inválido" });
+    }
     try {
-        const query = `
-      SELECT 
-        id,
-        name,
-        administrative_act_type,
-        administrative_act_number,
-        administrative_act_date,
-        total_area,
-        plan_number,
-        indigenous_people,
-        cod_dane,
-        lat,
-        lon,
-        ST_AsGeoJSON(territory_geom)::json as territory_geom
-      FROM indigenous_reserves
-      WHERE id = $1
-    `;
-        const result = yield db_1.default.query(query, [id]);
-        if (result.rows.length === 0) {
-            return res
-                .status(404)
-                .json({ message: "Reserva indígena no encontrada" });
+        const row = yield indigenousRepository_1.indigenousRepository.findById(id);
+        if (!row) {
+            return res.status(404).json({ success: false, message: "Reserva indígena no encontrada" });
         }
-        const transformedRow = (0, geojsonUtils_1.transformToGeoJSON)(result.rows[0]);
-        if (!transformedRow) {
-            return res
-                .status(500)
-                .json({ message: "Error al procesar la geometría" });
+        const transformed = (0, geojsonUtils_1.transformToGeoJSON)(row);
+        if (!transformed) {
+            return res.status(500).json({ success: false, message: "Error al procesar la geometría" });
         }
-        res.json(transformedRow);
+        res.json(transformed);
     }
     catch (error) {
-        console.error("Error al obtener la reserva indígena:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        console.error("[indigenous] Error fetching by id:", error);
+        res.status(500).json({ success: false, message: "Error interno del servidor" });
     }
 });
 exports.getIndigenousReserveById = getIndigenousReserveById;
+const getIndigenousReservesByMunicipality = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const codDane = req.params.codDane;
+    if (!codDane) {
+        return res.status(400).json({ success: false, message: "Se requiere el código DANE" });
+    }
+    try {
+        const rows = yield indigenousRepository_1.indigenousRepository.findByMunicipality(codDane);
+        res.json(rows.map(geojsonUtils_1.transformToGeoJSON).filter(Boolean));
+    }
+    catch (error) {
+        console.error("[indigenous] Error fetching by municipality:", error);
+        res.status(500).json({ success: false, message: "Error interno del servidor" });
+    }
+});
+exports.getIndigenousReservesByMunicipality = getIndigenousReservesByMunicipality;

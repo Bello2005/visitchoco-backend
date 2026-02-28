@@ -1,107 +1,55 @@
 import { Request, Response } from "express";
-import pool from "../../config/db";
+import { indigenousRepository } from "../../repositories/indigenousRepository";
 import { transformToGeoJSON } from "../../utils/geojsonUtils";
 
-// Obtener reservas indígenas por municipio
-export const getIndigenousReservesByMunicipality = async (
-  req: Request,
-  res: Response
-) => {
-  const { codDane } = req.params;
+export const getIndigenousReserves = async (_req: Request, res: Response) => {
   try {
-    const query = `
-      SELECT 
-        id,
-        name,
-        administrative_act_type,
-        administrative_act_number,
-        administrative_act_date,
-        total_area,
-        plan_number,
-        indigenous_people,
-        cod_dane,
-        lat,
-        lon,
-        ST_AsGeoJSON(territory_geom)::json as territory_geom
-      FROM indigenous_reserves
-      WHERE cod_dane = $1
-    `;
-    const result = await pool.query(query, [codDane]);
-    const transformedRows = result.rows.map(transformToGeoJSON).filter(Boolean);
-    res.json(transformedRows);
+    const rows = await indigenousRepository.findAll();
+    res.json(rows.map(transformToGeoJSON).filter(Boolean));
   } catch (error) {
-    console.error("Error al obtener reservas indígenas por municipio:", error);
-    res.status(500).json({ message: "Error interno del servidor" });
+    console.error("[indigenous] Error fetching all:", error);
+    res.status(500).json({ success: false, message: "Error interno del servidor" });
   }
 };
 
-// Obtener todas las reservas indígenas
-export const getIndigenousReserves = async (req: Request, res: Response) => {
-  try {
-    const query = `
-      SELECT 
-        id,
-        name,
-        administrative_act_type,
-        administrative_act_number,
-        administrative_act_date,
-        total_area,
-        plan_number,
-        indigenous_people,
-        cod_dane,
-        lat,
-        lon,
-        ST_AsGeoJSON(territory_geom)::json as territory_geom
-      FROM indigenous_reserves
-    `;
-    const result = await pool.query(query);
-    const transformedRows = result.rows.map(transformToGeoJSON).filter(Boolean);
-    res.json(transformedRows);
-  } catch (error) {
-    console.error("Error al obtener reservas indígenas:", error);
-    res.status(500).json({ message: "Error interno del servidor" });
-  }
-};
-
-// Obtener una reserva indígena por ID
 export const getIndigenousReserveById = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id as string, 10);
+
+  if (isNaN(id)) {
+    return res.status(400).json({ success: false, message: "ID inválido" });
+  }
+
   try {
-    const query = `
-      SELECT 
-        id,
-        name,
-        administrative_act_type,
-        administrative_act_number,
-        administrative_act_date,
-        total_area,
-        plan_number,
-        indigenous_people,
-        cod_dane,
-        lat,
-        lon,
-        ST_AsGeoJSON(territory_geom)::json as territory_geom
-      FROM indigenous_reserves
-      WHERE id = $1
-    `;
-    const result = await pool.query(query, [id]);
+    const row = await indigenousRepository.findById(id);
 
-    if (result.rows.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "Reserva indígena no encontrada" });
+    if (!row) {
+      return res.status(404).json({ success: false, message: "Reserva indígena no encontrada" });
     }
 
-    const transformedRow = transformToGeoJSON(result.rows[0]);
-    if (!transformedRow) {
-      return res
-        .status(500)
-        .json({ message: "Error al procesar la geometría" });
+    const transformed = transformToGeoJSON(row);
+    if (!transformed) {
+      return res.status(500).json({ success: false, message: "Error al procesar la geometría" });
     }
 
-    res.json(transformedRow);
+    res.json(transformed);
   } catch (error) {
-    console.error("Error al obtener la reserva indígena:", error);
-    res.status(500).json({ message: "Error interno del servidor" });
+    console.error("[indigenous] Error fetching by id:", error);
+    res.status(500).json({ success: false, message: "Error interno del servidor" });
+  }
+};
+
+export const getIndigenousReservesByMunicipality = async (req: Request, res: Response) => {
+  const codDane = req.params.codDane as string;
+
+  if (!codDane) {
+    return res.status(400).json({ success: false, message: "Se requiere el código DANE" });
+  }
+
+  try {
+    const rows = await indigenousRepository.findByMunicipality(codDane);
+    res.json(rows.map(transformToGeoJSON).filter(Boolean));
+  } catch (error) {
+    console.error("[indigenous] Error fetching by municipality:", error);
+    res.status(500).json({ success: false, message: "Error interno del servidor" });
   }
 };

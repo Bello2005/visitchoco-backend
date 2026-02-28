@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -45,32 +12,66 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.login = exports.register = void 0;
+exports.getAllUsers = exports.login = exports.register = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
-const db_1 = __importDefault(require("../../config/db"));
 const authService_1 = require("../../services/authService/authService");
-const authController = {
-    register: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        const { name, email, password } = req.body;
+const userRepository_1 = require("../../repositories/userRepository");
+const authValidator_1 = require("../../validators/authValidator");
+const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const parsed = authValidator_1.registerSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({
+            success: false,
+            message: parsed.error.issues[0].message,
+        });
+    }
+    const { name, email, password } = parsed.data;
+    try {
         const hash = yield bcrypt_1.default.hash(password, 10);
-        // Asume que el role_id por defecto es 2 (usuario normal)
-        yield db_1.default.query("INSERT INTO users (name, email, password_hash, role_id) VALUES ($1, $2, $3, $4)", [name, email, hash, 2]);
-        res.status(201).json({ message: "User created" });
-    }),
-    login: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        const { email, password } = req.body;
-        try {
-            // authenticate debe retornar solo el token, así que obtenemos el usuario para el rol
-            const user = yield (yield Promise.resolve().then(() => __importStar(require("../../models/Users/Users")))).findUserByEmail(email);
-            if (!user)
-                throw new Error("Invalid credentials");
-            const token = yield (0, authService_1.authenticate)(email, password);
-            return res.json({ token, role: user.role });
+        yield userRepository_1.userRepository.create(name, email, hash);
+        res.status(201).json({ success: true, message: "Usuario creado exitosamente" });
+    }
+    catch (error) {
+        const msg = error instanceof Error ? error.message : "";
+        if (msg.includes("unique") || msg.includes("duplicate")) {
+            return res.status(409).json({ success: false, message: "El email ya está registrado" });
         }
-        catch (err) {
-            return res.status(401).json({ message: err.message });
+        console.error("[auth] Error en registro:", error);
+        res.status(500).json({ success: false, message: "Error interno del servidor" });
+    }
+});
+exports.register = register;
+const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const parsed = authValidator_1.loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({
+            success: false,
+            message: parsed.error.issues[0].message,
+        });
+    }
+    const { email, password } = parsed.data;
+    try {
+        const user = yield userRepository_1.userRepository.findByEmail(email);
+        if (!user) {
+            return res.status(401).json({ success: false, message: "Credenciales inválidas" });
         }
-    }),
-};
-exports.register = authController.register;
-exports.login = authController.login;
+        const token = yield (0, authService_1.authenticate)(email, password);
+        res.json({ token, role: user.role });
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : "Credenciales inválidas";
+        res.status(401).json({ success: false, message });
+    }
+});
+exports.login = login;
+const getAllUsers = (_req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const users = yield userRepository_1.userRepository.findAll();
+        res.json(users);
+    }
+    catch (error) {
+        console.error("[auth] Error fetching users:", error);
+        res.status(500).json({ success: false, message: "Error interno del servidor" });
+    }
+});
+exports.getAllUsers = getAllUsers;

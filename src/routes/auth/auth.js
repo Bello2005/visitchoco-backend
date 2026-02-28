@@ -40,9 +40,6 @@ const express_1 = require("express");
 const authController_1 = require("../../controllers/authController/authController");
 const auth_1 = require("../../middlewares/auth");
 const router = (0, express_1.Router)();
-// Rutas públicas
-router.post("/login", authController_1.login);
-router.post("/register", authController_1.register);
 /**
  * @openapi
  * /api/auth/login:
@@ -182,3 +179,38 @@ exports.default = router;
  *         description: Usuario creado
  */
 router.post("/register", authController_1.register);
+/**
+ * @openapi
+ * /api/auth/users:
+ *   get:
+ *     summary: Obtener todos los usuarios
+ *     tags: [Auth]
+ *     responses:
+ *       '200':
+ *         description: Lista de usuarios
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 1
+ *                   name:
+ *                     type: string
+ *                     example: "Josser Córdoba"
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                     example: "admin@choco.com"
+ *                   role:
+ *                     type: string
+ *                     example: "admin"
+ *                   created_at:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-09-15T21:32:45.123Z"
+ */
+router.get("/users", authController_1.getAllUsers);
