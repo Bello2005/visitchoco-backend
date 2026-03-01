@@ -294,6 +294,14 @@ Variables a configurar en el dashboard de Vercel (Settings → Environment Varia
 - Contraseñas hasheadas con **bcrypt** (10 salt rounds)
 - Tokens **JWT** con verificación de expiración en cada request
 - Validación de inputs con **Zod** en todos los endpoints POST
-- CORS restringido al dominio del frontend configurado en `FRONTEND_URL`
+- CORS restringido al dominio del frontend configurado en `FRONTEND_URL` (Express 5 compatible: `app.use(cors())` sin `app.options("*")`)
 - Middleware global de errores — ningún stack trace llega al cliente en producción
 - Variables sensibles exclusivamente en variables de entorno
+
+---
+
+## Notas de compatibilidad
+
+- **Express 5 + path-to-regexp@8:** no usar `app.options("*", cors(...))` — incompatible. Usar únicamente `app.use(cors(corsOptions))`
+- **Reservas indígenas:** el campo `territory_geom` se expone como GeoJSON vía `ST_AsGeoJSON`. Los campos de ubicación son `cod_dane`, `department_code`, `municipality_code`, `lat` y `lon`
+- **Base de datos:** se usa Neon (PostgreSQL + PostGIS en la nube). El schema real puede diferir del `src/schema/DB.sql` local — verificar siempre con `\d nombre_tabla`

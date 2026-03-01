@@ -37,9 +37,5 @@ const corsOptions = {
 };
 
 export const configureCors = (app: any) => {
-  // Middleware de pre-vuelo para las solicitudes OPTIONS
-  app.options("*", cors(corsOptions));
-
-  // Aplicar CORS para todas las rutas
   app.use(cors(corsOptions));
 };

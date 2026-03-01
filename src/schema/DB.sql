@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict EiZ08bMpdzQUmMQPo6pUtSnup3nW0CJCFheOF6Sv43iAgpSIZZrjsV4aCEQLQlk
+-- \restrict EiZ08bMpdzQUmMQPo6pUtSnup3nW0CJCFheOF6Sv43iAgpSIZZrjsV4aCEQLQlk
 
 -- Dumped from database version 16.10 (Ubuntu 16.10-1.pgdg24.04+1)
 -- Dumped by pg_dump version 17.6 (Ubuntu 17.6-1.pgdg24.04+1)
@@ -10,7 +10,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
+-- SET transaction_timeout = 0;  -- Solo disponible en PostgreSQL 17+
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -1177,4 +1177,4 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict EiZ08bMpdzQUmMQPo6pUtSnup3nW0CJCFheOF6Sv43iAgpSIZZrjsV4aCEQLQlk
+-- \unrestrict EiZ08bMpdzQUmMQPo6pUtSnup3nW0CJCFheOF6Sv43iAgpSIZZrjsV4aCEQLQlk

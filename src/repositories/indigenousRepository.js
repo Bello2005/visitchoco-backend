@@ -17,7 +17,8 @@ const db_1 = __importDefault(require("../config/db"));
 const SELECT_FIELDS = `
   id, name,
   administrative_act_type, administrative_act_number, administrative_act_date,
-  total_area, plan_number, indigenous_people, cod_dane, lat, lon,
+  total_area, plan_number, indigenous_people,
+  cod_dane, department_code, municipality_code, lat, lon,
   ST_AsGeoJSON(territory_geom)::json AS territory_geom
 `;
 exports.indigenousRepository = {
