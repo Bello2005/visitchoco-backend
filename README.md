@@ -29,7 +29,7 @@ REST API para la plataforma **visitChoco**, una guía interactiva de turismo, bi
 
 ```
 src/
-├── config/           # Configuraciones (CORS, DB pool, Swagger, Weather)
+├── config/           # CORS, DB pool, Swagger, Weather
 ├── controllers/      # Lógica de negocio por dominio
 │   ├── authController/
 │   ├── municipalitiesController/
@@ -37,40 +37,40 @@ src/
 │   ├── ethnicDistributionController/
 │   ├── populationController/
 │   ├── weatherController/
+│   ├── animalController/        # Fauna por municipio
+│   ├── festivalController/      # Festivales por municipio
+│   ├── attractionController/    # Atracciones turísticas por municipio
 │   └── dashboardController/
-├── middlewares/      # verifyJWT (auth), error handler global
+├── middlewares/      # verifyJWT, error handler global
 ├── models/           # Tipos TypeScript
 ├── repositories/     # Capa de acceso a datos (SQL puro)
 │   ├── municipalityRepository.ts
 │   ├── indigenousRepository.ts
 │   ├── ethnicRepository.ts
-│   └── userRepository.ts
+│   ├── userRepository.ts
+│   ├── animalRepository.ts
+│   ├── festivalRepository.ts
+│   └── attractionRepository.ts
 ├── routes/           # Definición de rutas por dominio
-│   ├── auth/
-│   ├── municipalities/
-│   ├── indigenous/
-│   ├── ethnic/
-│   ├── population/
-│   ├── weather/
-│   └── dashboard/
+│   ├── auth/   municipalities/   indigenous/   ethnic/
+│   ├── population/   weather/   dashboard/
+│   ├── animals/      festivals/   attractions/
 ├── schema/           # Esquema SQL completo (DB.sql)
-├── services/         # Servicios externos (Supabase storage)
+├── services/         # Servicios externos
 ├── utils/            # Helpers (generateJWT, etc.)
 └── validators/       # Schemas Zod (authValidator)
 ```
 
 ### Patrón de respuesta unificado
 
-Todos los endpoints usan el mismo formato de respuesta:
-
 ```json
 // Éxito
 { "success": true, "data": { ... } }
 
-// Error de cliente (400 / 401 / 403 / 404)
+// Error cliente (400 / 401 / 403 / 404)
 { "success": false, "message": "Descripción del error" }
 
-// Error de servidor (500)
+// Error servidor (500)
 { "success": false, "message": "Error interno del servidor" }
 ```
 
@@ -78,38 +78,28 @@ Todos los endpoints usan el mismo formato de respuesta:
 
 ## Base de datos
 
-PostgreSQL 16 con extensión **PostGIS** para datos geoespaciales.
+PostgreSQL 16 con extensión **PostGIS** alojado en **Neon**.
 
 ### Tablas principales
 
 | Tabla | Descripción |
 |-------|-------------|
-| `municipalities` | 31 municipios del Chocó: coordenadas, geometría de territorio (MultiPolygon SRID 4326), zona, actividad principal, atracciones y transporte (JSONB) |
+| `municipalities` | 31 municipios: coordenadas, geometría PostGIS, zona, actividad, atracciones y transporte (JSONB) |
 | `animals` | Fauna por municipio — nombre común, científico, imagen, audio |
 | `attractions` | Atractivos turísticos por municipio |
-| `festivals` | Festivales y eventos culturales por municipio |
-| `population` | Datos censales DANE: total, cabecera municipal, centros rurales |
+| `festivals` | Festivales y eventos culturales — nombre, fecha inicio/fin |
+| `population` | Datos censales DANE: total, cabecera, centros rurales |
 | `municipality_ethnic_distribution` | Distribución étnica por municipio, año y fuente (DANE) |
-| `ethnicity_codes` | Catálogo de códigos étnicos DANE |
 | `users` | Usuarios con hash bcrypt y referencia a rol |
 | `roles` | `admin` / `user` |
-| `media_uploads` | Registro de archivos multimedia subidos |
+| `media_uploads` | Registro de archivos multimedia |
 | `search_history` | Historial de búsquedas por usuario |
 
-### Funciones y triggers automáticos
+### Funciones y triggers
 
-- `municipalities_set_geom()` — genera la geografía PostGIS (`POINT 4326`) al insertar/actualizar `lat`/`lon`
+- `municipalities_set_geom()` — genera la geografía PostGIS al insertar/actualizar coordenadas
 - `trigger_set_updated_at()` — actualiza `updated_at` en cada UPDATE
-- `safe_text_to_jsonb()` — parseo tolerante de texto a JSONB (maneja comillas dobles, tipográficas, etc.)
-
-### Vistas
-
-| Vista | Descripción |
-|-------|-------------|
-| `vw_municipalities_population` | Municipios con datos de población |
-| `vw_municipality_population_summary` | Resumen agregado de población por municipio |
-| `vw_muni_ethnic_with_label` | Distribución étnica con etiquetas legibles y geometría |
-| `v_municipality_ethnic_readable` | Distribución étnica con nombre de etnia |
+- `safe_text_to_jsonb()` — parseo tolerante de texto a JSONB
 
 ### Restaurar el esquema
 
@@ -122,30 +112,20 @@ psql -U postgres -d visitchoco < src/schema/DB.sql
 ## Endpoints de la API
 
 Base URL local: `http://localhost:8000/api`
-Base URL producción: `https://visitchoco-backend.vercel.app/api`
 
 ### Autenticación — `/api/auth`
 
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
-| `POST` | `/auth/login` | No | Iniciar sesión → devuelve JWT |
-| `POST` | `/auth/register` | No | Registrar nuevo usuario |
-
-**Body login/register:**
-```json
-{ "email": "user@example.com", "password": "minimo8chars" }
-```
-**Respuesta login:**
-```json
-{ "success": true, "data": { "token": "eyJ...", "role": "user" } }
-```
+| `POST` | `/auth/login` | No | Login → devuelve JWT |
+| `POST` | `/auth/register` | No | Registro de usuario |
 
 ### Municipios — `/api/municipalities`
 
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
 | `GET` | `/municipalities` | No | Todos los municipios del Chocó |
-| `GET` | `/municipalities/:slug` | No | Detalle de un municipio por slug |
+| `GET` | `/municipalities/:slug` | No | Municipio por slug |
 
 ### Comunidades indígenas — `/api/indigenous`
 
@@ -153,18 +133,39 @@ Base URL producción: `https://visitchoco-backend.vercel.app/api`
 |--------|------|------|-------------|
 | `GET` | `/indigenous` | No | Todas las reservas indígenas |
 | `GET` | `/indigenous/:id` | No | Reserva por ID |
-| `GET` | `/indigenous/municipality/:codDane` | No | Reservas de un municipio (cod DANE) |
+| `GET` | `/indigenous/municipality/:codDane` | No | Reservas de un municipio |
 
 ### Distribución étnica — `/api/ethnic`
 
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
 | `GET` | `/ethnic` | No | Distribución étnica completa |
-| `GET` | `/ethnic/municipality/:codDane` | No | Por municipio (cod DANE) |
+| `GET` | `/ethnic/:codDane` | No | Por municipio (cod DANE) |
 | `GET` | `/ethnic/stats` | No | Estadísticas globales |
-| `GET` | `/ethnic/summary/latest` | No | Resumen del año más reciente |
+| `GET` | `/ethnic/latest` | No | Resumen del año más reciente |
 | `GET` | `/ethnic/summary/total` | No | Resumen total histórico |
-| `GET` | `/ethnic/year/:year` | No | Por año específico |
+| `GET` | `/ethnic/summary/by-year` | No | Agrupado por año |
+
+### Fauna — `/api/animals`
+
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| `GET` | `/animals` | No | Todos los animales del Chocó |
+| `GET` | `/animals/municipality/:municipalityId` | No | Fauna de un municipio |
+
+### Festivales — `/api/festivals`
+
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| `GET` | `/festivals` | No | Todos los festivales |
+| `GET` | `/festivals/municipality/:municipalityId` | No | Festivales de un municipio |
+
+### Atracciones turísticas — `/api/attractions`
+
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| `GET` | `/attractions` | No | Todos los atractivos turísticos |
+| `GET` | `/attractions/municipality/:municipalityId` | No | Atracciones de un municipio |
 
 ### Población — `/api/population`
 
@@ -177,7 +178,7 @@ Base URL producción: `https://visitchoco-backend.vercel.app/api`
 
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
-| `GET` | `/weather/:municipalityName` | No | Clima actual vía OpenWeatherMap |
+| `GET` | `/weather/:municipalityName` | No | Clima actual (OpenWeatherMap) |
 
 ### Dashboard — `/api` (requiere JWT)
 
@@ -195,60 +196,39 @@ GET /api/docs
 
 ## Variables de entorno
 
-Crear `.env.local` en la raíz del proyecto basándose en `.env.example`:
+Crear `.env.local` en la raíz:
 
 ```env
-# Base de datos (PostgreSQL + PostGIS)
-DB_HOST=your_db_host
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
-DB_NAME=your_db_name
-DB_PORT=5432
+# Base de datos (Neon / PostgreSQL + PostGIS)
+DATABASE_URL=postgresql://user:pass@host/db?sslmode=require
+# Fallback si DATABASE_URL no está definido:
+DB_HOST=   DB_USER=   DB_PASSWORD=   DB_NAME=   DB_PORT=5432
 
-# Servidor
 PORT=8000
-
-# Clima — https://openweathermap.org/api
-WEATHER_API_KEY=your_openweathermap_api_key
-
-# JWT (mínimo 32 caracteres aleatorios)
-JWT_SECRET=your_jwt_secret
-
-# CORS — URL del frontend desplegado
+JWT_SECRET=your_jwt_secret_min_32_chars
+WEATHER_API_KEY=your_openweathermap_key
 FRONTEND_URL=https://visitchoco-frontend.vercel.app
 ```
-
-> `.env.local` nunca se sube a git. Solo `.env.example` (sin valores reales).
 
 ---
 
 ## Instalación y desarrollo
 
-### Requisitos previos
-
-- Node.js 20+
-- pnpm 9+
-- PostgreSQL 16 con extensión PostGIS activa
-
 ```bash
-# 1. Instalar dependencias
+# Instalar dependencias
 pnpm install
 
-# 2. Configurar variables de entorno
-cp .env.example .env.local
-# editar .env.local con los valores reales
+# Configurar variables de entorno
+cp .env.example .env.local   # completar con valores reales
 
-# 3. Restaurar la base de datos
-psql -U postgres -d visitchoco < src/schema/DB.sql
+# Restaurar esquema (opcional, BD Neon ya tiene datos)
+psql $DATABASE_URL < src/schema/DB.sql
 
-# 4. Iniciar servidor en modo desarrollo (hot reload)
+# Desarrollo con hot reload
 pnpm dev
 
-# 5. Compilar para producción
+# Build producción
 pnpm build
-
-# 6. Iniciar en producción (requiere build previo)
-pnpm start
 ```
 
 ---
@@ -256,52 +236,39 @@ pnpm start
 ## Testing
 
 ```bash
-# Ejecutar todos los tests
 pnpm test
-
-# Con reporte de cobertura
 pnpm test --coverage
 ```
 
 | Suite | Tests | Descripción |
 |-------|-------|-------------|
-| `src/middlewares/auth.test.ts` | 5 | verifyJWT: sin header, formato inválido, token inválido, expirado, válido |
-| `src/validators/authValidator.test.ts` | 7 | loginSchema y registerSchema con Zod |
+| `auth.test.ts` | 5 | verifyJWT: sin header, formato inválido, token inválido, expirado, válido |
+| `authValidator.test.ts` | 7 | loginSchema y registerSchema con Zod |
 
 ---
 
 ## Despliegue en Vercel
 
 ```bash
-# Login (primera vez)
-vercel login
-
-# Despliegue preview
-vercel
-
-# Despliegue producción
 vercel --prod
 ```
 
-Variables a configurar en el dashboard de Vercel (Settings → Environment Variables):
-
-`DB_HOST` · `DB_USER` · `DB_PASSWORD` · `DB_NAME` · `DB_PORT` · `JWT_SECRET` · `WEATHER_API_KEY` · `FRONTEND_URL`
+Variables en Vercel: `DATABASE_URL` · `JWT_SECRET` · `WEATHER_API_KEY` · `FRONTEND_URL`
 
 ---
 
 ## Seguridad
 
 - Contraseñas hasheadas con **bcrypt** (10 salt rounds)
-- Tokens **JWT** con verificación de expiración en cada request
+- Tokens **JWT** verificados en cada request protegido
 - Validación de inputs con **Zod** en todos los endpoints POST
-- CORS restringido al dominio del frontend configurado en `FRONTEND_URL` (Express 5 compatible: `app.use(cors())` sin `app.options("*")`)
-- Middleware global de errores — ningún stack trace llega al cliente en producción
-- Variables sensibles exclusivamente en variables de entorno
+- CORS restringido al dominio del frontend (`FRONTEND_URL`)
+- Middleware global de errores — sin stack traces al cliente en producción
 
 ---
 
 ## Notas de compatibilidad
 
-- **Express 5 + path-to-regexp@8:** no usar `app.options("*", cors(...))` — incompatible. Usar únicamente `app.use(cors(corsOptions))`
-- **Reservas indígenas:** el campo `territory_geom` se expone como GeoJSON vía `ST_AsGeoJSON`. Los campos de ubicación son `cod_dane`, `department_code`, `municipality_code`, `lat` y `lon`
-- **Base de datos:** se usa Neon (PostgreSQL + PostGIS en la nube). El schema real puede diferir del `src/schema/DB.sql` local — verificar siempre con `\d nombre_tabla`
+- **Express 5 + path-to-regexp@8:** no usar `app.options("*", cors(...))` — usar solo `app.use(cors(corsOptions))`
+- **BD Neon:** el schema real puede diferir de `src/schema/DB.sql` — verificar con `\d nombre_tabla`
+- Los archivos `.js` en `src/` son los compilados que ejecuta ts-node-dev (toman precedencia sobre `.ts`)

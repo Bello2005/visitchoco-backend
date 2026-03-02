@@ -8,6 +8,9 @@ import municipalitiesRoutes from "./routes/municipalities/municipalities";
 import indigenousRoutes from "./routes/indigenous/indigenous";
 import weatherRoutes from "./routes/weather/weather";
 import dashboardRoutes from "./routes/dashboard/dashboard";
+import animalsRoutes from "./routes/animals/animals";
+import festivalsRoutes from "./routes/festivals/festivals";
+import attractionsRoutes from "./routes/attractions/attractions";
 import { verifyJWT } from "./middlewares/auth";
 
 dotenv.config();
@@ -27,6 +30,9 @@ app.use("/api/municipalities", municipalitiesRoutes);
 app.use("/api/indigenous", indigenousRoutes);
 app.use("/api/ethnic", require("./routes/ethnic/ethnic").default);
 app.use("/api/weather", weatherRoutes);
+app.use("/api/animals", animalsRoutes);
+app.use("/api/festivals", festivalsRoutes);
+app.use("/api/attractions", attractionsRoutes);
 
 // Rutas protegidas (requieren autenticación)
 app.use("/api", verifyJWT, dashboardRoutes);
