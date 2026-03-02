@@ -37,6 +37,29 @@ app.use("/api/attractions", attractionsRoutes);
 // Rutas protegidas (requieren autenticación)
 app.use("/api", verifyJWT, dashboardRoutes);
 
+// Root
+app.get("/", (_req: Request, res: Response) => {
+  res.json({
+    name: "visitChoco API",
+    version: "1.0.0",
+    description: "REST API para la plataforma visitChoco — turismo, biodiversidad y datos demográficos del departamento del Chocó, Colombia.",
+    docs: "/api/docs",
+    endpoints: [
+      "GET  /api/municipalities",
+      "GET  /api/municipalities/:slug",
+      "GET  /api/indigenous",
+      "GET  /api/ethnic",
+      "GET  /api/animals",
+      "GET  /api/festivals",
+      "GET  /api/attractions",
+      "GET  /api/weather/:municipalityName",
+      "POST /api/auth/login",
+      "POST /api/auth/register",
+    ],
+    status: "ok",
+  });
+});
+
 // Global error handler (Express 5 compatible — 4 parámetros obligatorios)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
