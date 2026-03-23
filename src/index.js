@@ -16,6 +16,7 @@ const dashboard_1 = __importDefault(require("./routes/dashboard/dashboard"));
 const animals_1 = __importDefault(require("./routes/animals/animals"));
 const festivals_1 = __importDefault(require("./routes/festivals/festivals"));
 const attractions_1 = __importDefault(require("./routes/attractions/attractions"));
+const patrimonio_1 = __importDefault(require("./routes/patrimonio/patrimonio"));
 const auth_2 = require("./middlewares/auth");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -33,6 +34,7 @@ app.use("/api/weather", weather_1.default);
 app.use("/api/animals", animals_1.default);
 app.use("/api/festivals", festivals_1.default);
 app.use("/api/attractions", attractions_1.default);
+app.use("/api/patrimonio", patrimonio_1.default);
 // Rutas protegidas (requieren autenticación)
 app.use("/api", auth_2.verifyJWT, dashboard_1.default);
 // Root

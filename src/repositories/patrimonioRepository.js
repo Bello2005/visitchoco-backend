@@ -12,26 +12,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.animalRepository = void 0;
+exports.patrimonioRepository = void 0;
 const db_1 = __importDefault(require("../config/db"));
-exports.animalRepository = {
+exports.patrimonioRepository = {
     findAll: () => __awaiter(void 0, void 0, void 0, function* () {
         const result = yield db_1.default.query(`
-      SELECT a.*, m.name AS municipality_name
-      FROM animals a
-      LEFT JOIN municipalities m ON m.id = a.municipality_id
-      ORDER BY a.common_name ASC
+      SELECT * FROM patrimonio_inmaterial
+      ORDER BY municipio_nombre, id
     `);
         return result.rows;
     }),
-    findByMunicipality: (municipalityId) => __awaiter(void 0, void 0, void 0, function* () {
+    findByMunicipio: (municipio) => __awaiter(void 0, void 0, void 0, function* () {
         const result = yield db_1.default.query(`
-      SELECT a.*, m.name AS municipality_name
-      FROM animals a
-      LEFT JOIN municipalities m ON m.id = a.municipality_id
-      WHERE a.municipality_id = $1
-      ORDER BY a.common_name ASC
-      `, [municipalityId]);
+      SELECT * FROM patrimonio_inmaterial
+      WHERE municipio_nombre = $1 OR municipio_nombre = 'Chocó'
+      ORDER BY ambito DESC, id ASC
+      `, [municipio]);
         return result.rows;
     }),
 };

@@ -11,6 +11,8 @@ import dashboardRoutes from "./routes/dashboard/dashboard";
 import animalsRoutes from "./routes/animals/animals";
 import festivalsRoutes from "./routes/festivals/festivals";
 import attractionsRoutes from "./routes/attractions/attractions";
+import fiestasRoutes from "./routes/fiestas/fiestas";
+import patrimonioRoutes from "./routes/patrimonio/patrimonio";
 import { verifyJWT } from "./middlewares/auth";
 
 dotenv.config();
@@ -33,6 +35,8 @@ app.use("/api/weather", weatherRoutes);
 app.use("/api/animals", animalsRoutes);
 app.use("/api/festivals", festivalsRoutes);
 app.use("/api/attractions", attractionsRoutes);
+app.use("/api/fiestas", fiestasRoutes);
+app.use("/api/patrimonio", patrimonioRoutes);
 
 // Rutas protegidas (requieren autenticación)
 app.use("/api", verifyJWT, dashboardRoutes);

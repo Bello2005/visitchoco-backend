@@ -9,31 +9,31 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAnimalsByMunicipality = exports.getAnimals = void 0;
-const animalRepository_1 = require("../../repositories/animalRepository");
-const getAnimals = (_req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.getPatrimonioByMunicipio = exports.getPatrimonioInmaterial = void 0;
+const patrimonioRepository_1 = require("../../repositories/patrimonioRepository");
+const getPatrimonioInmaterial = (_req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const rows = yield animalRepository_1.animalRepository.findAll();
+        const rows = yield patrimonioRepository_1.patrimonioRepository.findAll();
         res.json(rows);
     }
     catch (error) {
-        console.error("[animals] Error fetching all:", error);
+        console.error("[patrimonio] Error fetching all:", error);
         res.status(500).json({ success: false, message: "Error interno del servidor" });
     }
 });
-exports.getAnimals = getAnimals;
-const getAnimalsByMunicipality = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const municipalityId = Number(req.params.municipalityId);
-    if (isNaN(municipalityId)) {
-        return res.status(400).json({ success: false, message: "ID de municipio inválido" });
+exports.getPatrimonioInmaterial = getPatrimonioInmaterial;
+const getPatrimonioByMunicipio = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const municipio = decodeURIComponent(req.params.municipio);
+    if (!municipio) {
+        return res.status(400).json({ success: false, message: "Nombre de municipio requerido" });
     }
     try {
-        const rows = yield animalRepository_1.animalRepository.findByMunicipality(municipalityId);
+        const rows = yield patrimonioRepository_1.patrimonioRepository.findByMunicipio(municipio);
         res.json(rows);
     }
     catch (error) {
-        console.error("[animals] Error fetching by municipality:", error);
+        console.error("[patrimonio] Error fetching by municipio:", error);
         res.status(500).json({ success: false, message: "Error interno del servidor" });
     }
 });
-exports.getAnimalsByMunicipality = getAnimalsByMunicipality;
+exports.getPatrimonioByMunicipio = getPatrimonioByMunicipio;
