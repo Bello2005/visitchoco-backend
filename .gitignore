@@ -35,3 +35,14 @@ Thumbs.db
 
 # Coverage directory (si usas Jest u otra herramienta)
 coverage/
+
+# No versionar JS junto a fuente TypeScript (artefactos de build o merges rotos)
+src/**/*.js
+data/**/*.js
+
+# Backup and temp files
+*.bak
+*.old
+*.new
+*.temp.*
+package-lock.json
