@@ -2,18 +2,35 @@ import { S3Client, DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import crypto from 'crypto';
 
-const client = new S3Client({
-  region: 'auto',
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-});
+const BUCKET = process.env.R2_BUCKET;
+const PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
-const BUCKET = process.env.R2_BUCKET ?? 'visitchoco-media';
-const PUBLIC_URL = process.env.R2_PUBLIC_URL ?? 'https://media.visitchoco.cloud';
-const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+let client: S3Client | null = null;
+
+/** R2 es opcional: sin estas vars el resto del admin funciona (media devuelve 501). */
+export function r2Configurado(): boolean {
+  return Boolean(
+    process.env.R2_ACCOUNT_ID &&
+    process.env.R2_ACCESS_KEY_ID &&
+    process.env.R2_SECRET_ACCESS_KEY &&
+    BUCKET &&
+    PUBLIC_URL
+  );
+}
+
+function getClient(): S3Client {
+  if (!client) {
+    client = new S3Client({
+      region: 'auto',
+      endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+      },
+    });
+  }
+  return client;
+}
 
 export function buildR2Key(entidadTipo: string, entidadId: string, ext: string): string {
   const rand = crypto.randomBytes(6).toString('hex');
@@ -33,9 +50,9 @@ export async function createUploadPresignedUrl(key: string, mimeType: string): P
   });
 
   // La URL expira en 5 minutos. El límite de tamaño (10 MB) se valida en el frontend antes de subir.
-  return getSignedUrl(client, command, { expiresIn: 300 });
+  return getSignedUrl(getClient(), command, { expiresIn: 300 });
 }
 
 export async function deleteR2Object(key: string): Promise<void> {
-  await client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+  await getClient().send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
 }

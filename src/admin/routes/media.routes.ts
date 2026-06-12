@@ -3,7 +3,7 @@ import { z } from 'zod';
 import pool from '../../config/db';
 import { requireAuth } from '../middleware/auth';
 import { audit } from '../middleware/audit';
-import { buildR2Key, r2PublicUrl, createUploadPresignedUrl, deleteR2Object } from '../services/r2';
+import { buildR2Key, r2PublicUrl, createUploadPresignedUrl, deleteR2Object, r2Configurado } from '../services/r2';
 
 const router = Router();
 
@@ -11,6 +11,7 @@ const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 // Obtener URL pre-firmada para subir
 router.post('/upload-url', requireAuth, async (req, res) => {
+  if (!r2Configurado()) return res.status(501).json({ error: 'media_no_configurado' });
   const schema = z.object({
     entidad_tipo: z.string(),
     entidad_id: z.string(),
@@ -94,7 +95,14 @@ router.delete('/:id', requireAuth, async (req, res) => {
   if (asset.rows.length === 0) return res.status(404).json({ error: 'no_encontrado' });
 
   const a = asset.rows[0];
-  await deleteR2Object(a.r2_key as string);
+  // Soft delete siempre; borrar el objeto de R2 solo si hay credenciales.
+  if (r2Configurado()) {
+    try {
+      await deleteR2Object(a.r2_key as string);
+    } catch (err) {
+      console.error('[media] no se pudo borrar de R2:', err instanceof Error ? err.message : err);
+    }
+  }
   await pool.query(`UPDATE media_assets SET activo = FALSE WHERE id = $1`, [req.params.id]);
   audit(req, { accion: 'media_delete', entidad_id: req.params.id });
   res.json({ ok: true });
