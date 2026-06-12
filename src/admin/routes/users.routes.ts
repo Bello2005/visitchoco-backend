@@ -1,13 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import crypto from 'crypto';
-import { Resend } from 'resend';
 import pool from '../../config/db';
 import { requireAuth, requireSuperAdmin } from '../middleware/auth';
 import { audit } from '../middleware/audit';
+import { sendEmail } from '../../services/emailService/emailService';
 
 const router = Router();
-const resend = new Resend(process.env.RESEND_API_KEY!);
 
 // Listar usuarios (super admin)
 router.get('/', requireAuth, requireSuperAdmin, async (req, res) => {
@@ -68,8 +67,7 @@ router.post('/invite', requireAuth, requireSuperAdmin, async (req, res) => {
   );
 
   const url = `${process.env.ADMIN_FRONTEND_URL}/auth/invite?token=${token}`;
-  await resend.emails.send({
-    from: `${process.env.RESEND_FROM_NAME ?? 'VisitChocó'} <${process.env.RESEND_FROM_EMAIL ?? 'noreply@visitchoco.cloud'}>`,
+  await sendEmail({
     to: parse.data.email,
     subject: 'Te invitaron a colaborar en VisitChocó Admin',
     html: `<p>Has sido invitado a colaborar en VisitChocó Admin.</p>

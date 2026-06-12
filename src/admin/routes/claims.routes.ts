@@ -3,11 +3,10 @@ import { z } from 'zod';
 import pool from '../../config/db';
 import { requireAuth, requireSuperAdmin } from '../middleware/auth';
 import { audit } from '../middleware/audit';
+import { sendEmail } from '../../services/emailService/emailService';
 import { rateLimit } from '../middleware/rateLimit';
-import { Resend } from 'resend';
 
 const router = Router();
-const resend = new Resend(process.env.RESEND_API_KEY!);
 
 // PÚBLICO: solicitar reclamo
 router.post('/',
@@ -63,8 +62,7 @@ router.post('/',
       ]
     );
 
-    resend.emails.send({
-      from: `${process.env.RESEND_FROM_NAME ?? 'VisitChocó'} <${process.env.RESEND_FROM_EMAIL ?? 'noreply@visitchoco.cloud'}>`,
+    sendEmail({
       to: 'ldbello@miuniclaretiana.edu.co',
       subject: `Nuevo reclamo · ${parse.data.nombre_completo}`,
       text: `Nuevo claim:\n\nEstablecimiento: ${parse.data.establecimiento_id}\nSolicitante: ${parse.data.nombre_completo}\nEmail: ${parse.data.email}\nMétodo: ${metodo}\n\nRevisar: ${process.env.ADMIN_FRONTEND_URL}/inbox/claims/${result.rows[0].id}`,

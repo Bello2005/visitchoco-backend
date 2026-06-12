@@ -25,6 +25,25 @@ function getResend(): Resend | null {
   return resendClient;
 }
 
+interface EmailParams {
+  to: string;
+  subject: string;
+  html?: string;
+  text?: string;
+}
+
+/** Envío genérico con el mismo fallback a consola que el email de login. */
+export async function sendEmail({ to, subject, html, text }: EmailParams): Promise<void> {
+  const resend = getResend();
+  if (!resend) {
+    console.log(`[EMAIL DEV] para=${to} asunto="${subject}"`);
+    if (text) console.log(`[EMAIL DEV] ${text}`);
+    return;
+  }
+  const result = await resend.emails.send({ from: FROM, to, subject, html, text: text ?? '' });
+  console.log('[email] respuesta Resend:', JSON.stringify(result));
+}
+
 /** Formato legible "123 456" para el código de 6 dígitos. */
 function formatearCodigo(codigo: string): string {
   return `${codigo.slice(0, 3)} ${codigo.slice(3)}`;
