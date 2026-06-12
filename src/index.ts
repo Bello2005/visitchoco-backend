@@ -18,6 +18,7 @@ import rntRoutes from "./routes/rnt/rnt";
 import populationRoutes from "./routes/population/population";
 import establecimientosPublicRoutes from "./routes/establecimientos/establecimientos";
 import { verifyJWT } from "./middlewares/auth";
+import { publicCache } from "./middlewares/publicCache";
 import adminRouter from "./admin/index";
 
 dotenv.config();
@@ -32,18 +33,23 @@ app.use(express.json());
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Rutas públicas
+// publicCache: contenido editorial (1 h) y datos casi estáticos (24 h).
+// Sin cache en /api/auth, /api/weather, /api/admin, /api/docs, /api/establecimientos.
+const CACHE_1H = publicCache(3600, 86400);
+const CACHE_24H = publicCache(86400, 86400);
+
 app.use("/api/auth", authRoutes);
-app.use("/api/municipalities", municipalitiesRoutes);
-app.use("/api/indigenous", indigenousRoutes);
-app.use("/api/ethnic", ethnicRoutes);
+app.use("/api/municipalities", CACHE_1H, municipalitiesRoutes);
+app.use("/api/indigenous", CACHE_24H, indigenousRoutes);
+app.use("/api/ethnic", CACHE_24H, ethnicRoutes);
 app.use("/api/weather", weatherRoutes);
-app.use("/api/animals", animalsRoutes);
-app.use("/api/festivals", festivalsRoutes);
-app.use("/api/attractions", attractionsRoutes);
-app.use("/api/fiestas", fiestasRoutes);
-app.use("/api/patrimonio", patrimonioRoutes);
-app.use("/api/rnt", rntRoutes);
-app.use("/api/population", populationRoutes);
+app.use("/api/animals", CACHE_1H, animalsRoutes);
+app.use("/api/festivals", CACHE_1H, festivalsRoutes);
+app.use("/api/attractions", CACHE_1H, attractionsRoutes);
+app.use("/api/fiestas", CACHE_1H, fiestasRoutes);
+app.use("/api/patrimonio", CACHE_1H, patrimonioRoutes);
+app.use("/api/rnt", CACHE_1H, rntRoutes);
+app.use("/api/population", CACHE_24H, populationRoutes);
 app.use("/api/establecimientos", establecimientosPublicRoutes);
 
 // Panel de administración (DEBE ir antes del verifyJWT global)

@@ -1,39 +1,38 @@
-import { Pool } from "pg";
+import { Pool as PgPool } from "pg";
+import { Pool as NeonPool, neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const pool = new Pool(
-  process.env.DATABASE_URL
-    ? {
-        connectionString: process.env.DATABASE_URL,
-        ssl: {
-          rejectUnauthorized: false,
-        },
-      }
-    : {
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-        port: parseInt(process.env.DB_PORT || "5432"),
-      }
-);
+// Interfaz mínima común entre pg.Pool y @neondatabase/serverless Pool —
+// los repositorios solo usan query() y connect().
+type DbPool = Pick<PgPool, "query" | "connect" | "on">;
 
-// Test the connection
+// Con DATABASE_URL (Neon) usamos el driver serverless por WebSocket:
+// evita el handshake TCP+TLS de pg en cada cold start (~8-9 s → ~1 s).
+// Sin DATABASE_URL (dev local con DB_HOST) seguimos con pg.
+function createPool(): DbPool {
+  if (process.env.DATABASE_URL) {
+    neonConfig.webSocketConstructor = ws;
+    return new NeonPool({
+      connectionString: process.env.DATABASE_URL,
+    }) as unknown as DbPool;
+  }
+
+  return new PgPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: parseInt(process.env.DB_PORT || "5432"),
+  });
+}
+
+const pool = createPool();
+
 pool.on("error", (err) => {
   console.error("Unexpected error on idle client", err);
-  process.exit(-1);
 });
 
-// Verify connection
-pool.connect((err, client, done) => {
-  if (err) {
-    console.error("Error connecting to the database:", err);
-  } else {
-    console.log("Successfully connected to database");
-    done();
-  }
-});
-
-export default pool;
+export default pool as PgPool;
