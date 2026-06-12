@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import pool from '../../config/db';
-import { requireAuth, requirePermission } from '../middleware/auth';
+import { requireAuth, requirePermission, requireSuperAdmin } from '../middleware/auth';
 import { audit } from '../middleware/audit';
 import { aplicarCambio } from '../services/approvalQueue';
 
@@ -30,7 +30,7 @@ router.get('/', requireAuth, requirePermission('*', 'cultura.write', 'municipios
 });
 
 // Aprobar
-router.post('/:id/aprobar', requireAuth, requirePermission('*', 'cultura.write', 'municipios.write'), async (req, res) => {
+router.post('/:id/aprobar', requireAuth, requireSuperAdmin, async (req, res) => {
   const { id } = req.params;
   try {
     await aplicarCambio(id, req.adminUser!.id);
@@ -43,7 +43,7 @@ router.post('/:id/aprobar', requireAuth, requirePermission('*', 'cultura.write',
 });
 
 // Rechazar
-router.post('/:id/rechazar', requireAuth, requirePermission('*', 'cultura.write', 'municipios.write'), async (req, res) => {
+router.post('/:id/rechazar', requireAuth, requireSuperAdmin, async (req, res) => {
   const { id } = req.params;
   const { comentario } = req.body as { comentario?: string };
 

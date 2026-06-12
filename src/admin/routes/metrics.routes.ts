@@ -25,10 +25,19 @@ async function umamiGet(path: string) {
 router.get('/dashboard', requireAuth, async (req, res) => {
   const u = req.adminUser!;
 
-  const [negociosQ, pendientesQ, claimsQ] = await Promise.all([
+  const [negociosQ, porCategoriaQ, pendientesQ, claimsQ, municipiosQ, fiestasQ, patrimonioQ, usersQ] = await Promise.all([
     pool.query(`SELECT COUNT(*)::int FROM establecimientos WHERE activo = TRUE`),
+    pool.query(
+      `SELECT categoria, COUNT(*)::int AS total
+         FROM establecimientos WHERE activo = TRUE
+        GROUP BY categoria ORDER BY total DESC`
+    ),
     pool.query(`SELECT COUNT(*)::int FROM approval_queue WHERE estado = 'pendiente'`),
     pool.query(`SELECT COUNT(*)::int FROM business_claims WHERE estado IN ('pendiente','en_revision')`),
+    pool.query(`SELECT COUNT(*)::int FROM municipalities`),
+    pool.query(`SELECT COUNT(*)::int FROM fiestas_patronales`),
+    pool.query(`SELECT COUNT(*)::int FROM patrimonio_inmaterial`),
+    pool.query(`SELECT COUNT(*)::int FROM admin_users WHERE estado = 'activo'`),
   ]);
 
   const range = (req.query.range as string) ?? '30d';
@@ -47,7 +56,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
               au.email AS user_email
          FROM audit_log al
          LEFT JOIN admin_users au ON au.id = al.user_id
-         ORDER BY al.created_at DESC LIMIT 20`
+         ORDER BY al.created_at DESC LIMIT 10`
     );
     actividadReciente = actQ.rows;
   }
@@ -68,8 +77,13 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
   res.json({
     total_negocios: negociosQ.rows[0].count,
+    negocios_por_categoria: porCategoriaQ.rows,
     pendientes_aprobacion: pendientesQ.rows[0].count,
     claims_activos: claimsQ.rows[0].count,
+    total_municipios: municipiosQ.rows[0].count,
+    total_fiestas: fiestasQ.rows[0].count,
+    total_patrimonio: patrimonioQ.rows[0].count,
+    usuarios_activos: usersQ.rows[0].count,
     umami: umamiStats,
     actividad_reciente: actividadReciente,
   });
@@ -81,8 +95,8 @@ router.get('/global', requireAuth, async (req, res) => {
   const days = range === '7d' ? 7 : range === '90d' ? 90 : range === '12m' ? 365 : 30;
   const startAt = Date.now() - days * 24 * 60 * 60_000;
 
-  if (!UMAMI_SITE) {
-    return res.json({ error: 'umami_no_configurado' });
+  if (!UMAMI_SITE || !UMAMI_API || !UMAMI_KEY) {
+    return res.json({ stats: null, pageviews: null, events: null, range, error: 'analytics_no_configurado' });
   }
 
   const [stats, pageviews, events] = await Promise.all([

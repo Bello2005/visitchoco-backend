@@ -7,27 +7,22 @@ import { encolarCambio } from '../services/approvalQueue';
 
 const router = Router();
 
-const CATEGORIAS = ['hotel','restaurante','agencia_viajes','guia_turismo',
-  'operador_eventos','transporte','fritanga','pasteleria',
-  'viche_licores','legumbreria','otro'] as const;
-const RANGOS_PRECIO = ['$','$$','$$$','$$$$'] as const;
-
+// Whitelist = columnas reales de la tabla establecimientos.
+// Claves desconocidas se descartan (strip por defecto de z.object).
 const establecimientoSchema = z.object({
   nombre: z.string().min(2).max(200),
-  categoria: z.enum(CATEGORIAS),
-  subcategoria: z.string().max(100).optional().nullable(),
-  descripcion: z.string().max(2000).optional().nullable(),
-  municipio_id: z.number().int().positive().optional(),
-  telefono: z.string().max(50).optional().nullable(),
-  email: z.string().email().optional().nullable(),
-  whatsapp: z.string().max(50).optional().nullable(),
-  sitio_web: z.string().url().optional().nullable(),
-  direccion: z.string().max(500).optional().nullable(),
-  lat: z.number().min(-90).max(90).optional().nullable(),
-  lng: z.number().min(-180).max(180).optional().nullable(),
-  especialidades: z.array(z.string()).optional(),
-  horario: z.record(z.string(), z.string()).optional(),
-  rango_precio: z.enum(RANGOS_PRECIO).optional().nullable(),
+  categoria: z.string().min(2).max(100),
+  subcategoria: z.string().max(100).nullable(),
+  municipio_id: z.number().int().positive().nullable(),
+  direccion: z.string().max(500).nullable(),
+  rnt: z.string().max(50).nullable(),
+  telefono: z.string().max(50).nullable(),
+  email: z.string().email().nullable(),
+  foto_url: z.string().url().nullable(),
+  especialidades: z.array(z.string()),
+  activo: z.boolean(),
+  verificado: z.boolean(),
+  notas_admin: z.string().max(5000).nullable(),
 });
 
 // LIST
@@ -140,6 +135,10 @@ router.patch('/:id', requireAuth, async (req, res) => {
       [u.id, id]
     );
     if (owns.rows.length === 0) return res.status(403).json({ error: 'no_es_tu_negocio' });
+  }
+
+  // editor y negocio no escriben directo: sus cambios van a approval_queue.
+  if (u.role === 'dueno_negocio' || u.role === 'editor_institucional') {
     const queueId = await encolarCambio({
       entidad_tipo: 'establecimiento',
       entidad_id: id,

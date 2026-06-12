@@ -3,17 +3,21 @@ import { z } from 'zod';
 import pool from '../../config/db';
 import { requireAuth, requirePermission } from '../middleware/auth';
 import { audit } from '../middleware/audit';
+import { encolarCambio } from '../services/approvalQueue';
 
 const router = Router();
 
+// Whitelist SOLO editorial — jamás name, slug, geom, territory_geom, cod_dane.
 const municipioSchema = z.object({
-  name:          z.string().min(2).max(100).optional(),
-  description:   z.string().max(3000).optional().nullable(),
-  main_activity: z.string().max(200).optional().nullable(),
-  emoji:         z.string().max(10).optional().nullable(),
-  zone:          z.string().max(100).optional().nullable(),
-  lat:           z.number().min(-90).max(90).optional().nullable(),
-  lon:           z.number().min(-180).max(180).optional().nullable(),
+  description:   z.string().max(3000).nullable(),
+  image_url:     z.string().url().nullable(),
+  audio_url:     z.string().url().nullable(),
+  emoji:         z.string().max(10).nullable(),
+  zone:          z.string().max(100).nullable(),
+  main_activity: z.string().max(200).nullable(),
+  activo:        z.boolean(),
+  verificado:    z.boolean(),
+  notas_admin:   z.string().max(5000).nullable(),
 });
 
 // LIST
@@ -74,7 +78,7 @@ router.get('/:id', requireAuth, async (req, res) => {
   res.json({ municipio: result.rows[0], media: media.rows });
 });
 
-// PATCH — solo admin/editor, directo
+// PATCH — admin directo; editor → approval_queue
 router.patch('/:id',
   requireAuth,
   requirePermission('*', 'municipios.write'),
@@ -82,18 +86,33 @@ router.patch('/:id',
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: 'id_invalido' });
 
-    const parse = municipioSchema.safeParse(req.body);
+    const parse = municipioSchema.partial().safeParse(req.body);
     if (!parse.success) return res.status(400).json({ error: 'datos_invalidos', detalles: parse.error.format() });
 
     const fields = Object.keys(parse.data);
     if (fields.length === 0) return res.status(400).json({ error: 'sin_cambios' });
 
+    const u = req.adminUser!;
+    if (u.role !== 'super_admin') {
+      const queueId = await encolarCambio({
+        entidad_tipo: 'municipio',
+        entidad_id: String(id),
+        cambios: parse.data as Record<string, unknown>,
+        solicitado_por: u.id,
+        comentario: (req.body as Record<string, string>).comentario_solicitante ?? null,
+      });
+      audit(req, { accion: 'change_request', entidad_tipo: 'municipio', entidad_id: String(id), cambios: parse.data });
+      return res.json({ ok: true, en_revision: true, queue_id: queueId });
+    }
+
     const sets = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
     const values: unknown[] = Object.values(parse.data);
+    values.push(u.email);
     values.push(id);
 
     const result = await pool.query(
-      `UPDATE municipalities SET ${sets}, updated_at = NOW() WHERE id = $${values.length} RETURNING id, name`,
+      `UPDATE municipalities SET ${sets}, updated_by = $${values.length - 1}, updated_at = NOW()
+        WHERE id = $${values.length} RETURNING id, name`,
       values
     );
 
