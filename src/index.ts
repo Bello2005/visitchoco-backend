@@ -16,7 +16,9 @@ import patrimonioRoutes from "./routes/patrimonio/patrimonio";
 import ethnicRoutes from "./routes/ethnic/ethnic";
 import rntRoutes from "./routes/rnt/rnt";
 import populationRoutes from "./routes/population/population";
+import establecimientosPublicRoutes from "./routes/establecimientos/establecimientos";
 import { verifyJWT } from "./middlewares/auth";
+import adminRouter from "./admin/index";
 
 dotenv.config();
 const app = express();
@@ -42,8 +44,12 @@ app.use("/api/fiestas", fiestasRoutes);
 app.use("/api/patrimonio", patrimonioRoutes);
 app.use("/api/rnt", rntRoutes);
 app.use("/api/population", populationRoutes);
+app.use("/api/establecimientos", establecimientosPublicRoutes);
 
-// Rutas protegidas (requieren autenticación)
+// Panel de administración (DEBE ir antes del verifyJWT global)
+app.use("/api/admin", adminRouter);
+
+// Rutas protegidas del frontend público
 app.use("/api", verifyJWT, dashboardRoutes);
 
 // Root

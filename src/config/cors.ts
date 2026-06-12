@@ -5,8 +5,15 @@ config();
 
 const isDevelopment = process.env.NODE_ENV === "development";
 
+const ALLOWED_ORIGINS = [
+  'https://visitchoco-frontend.vercel.app',
+  'https://admin.visitchoco.cloud',
+  'https://visitchoco.cloud',
+  'https://www.visitchoco.cloud',
+];
+
 const isVercelDeployment = (origin: string): boolean => {
-  return origin.endsWith('.vercel.app') || origin === 'https://visitchoco-frontend.vercel.app';
+  return origin.endsWith('.vercel.app') || ALLOWED_ORIGINS.includes(origin);
 };
 
 const corsOptions = {
