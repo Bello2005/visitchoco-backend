@@ -69,6 +69,25 @@ pnpm start
 
 > Nunca commitees secretos reales. Usa las variables de entorno de la plataforma (Vercel, Railway, etc.) en producción.
 
+### Variables de entorno del admin
+
+| Variable | Descripción | Si falta |
+|----------|-------------|----------|
+| `RESEND_API_KEY` | API key de Resend para los emails de acceso | No falla: el código y el enlace se imprimen en consola (`[EMAIL DEV] …`) |
+| `RESEND_FROM` | Remitente, ej. `VisitChocó <acceso@visitchoco.cloud>` | Usa `RESEND_FROM_NAME <onboarding@resend.dev>` (válido sin dominio verificado) |
+| `ADMIN_URL` | URL del panel para construir el enlace del email | Usa `ADMIN_FRONTEND_URL` o `https://admin.visitchoco.cloud` |
+| `MAGIC_LINK_EXPIRES_MIN` | Minutos de vida del enlace/código (por defecto `15`) | — |
+| `R2_ACCOUNT_ID` | Cuenta de Cloudflare R2 | `/api/admin/media/upload-url` responde `501 media_no_configurado`; el resto del admin funciona |
+| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | Credenciales del API token de R2 | Ídem |
+| `R2_BUCKET` | Bucket de media (ej. `visitchoco-media`) | Ídem |
+| `R2_PUBLIC_URL` | Dominio público del bucket (ej. `https://media.visitchoco.cloud`) | Ídem |
+| `UMAMI_API_URL` / `UMAMI_API_KEY` / `UMAMI_WEBSITE_ID` | Analytics opcional | `/api/admin/metrics/global` responde `error: analytics_no_configurado` |
+
+Notas:
+- `JWT_SECRET` es compartido con el resto de la API y es **requerido** para el admin.
+- Con `DATABASE_URL` definida el pool usa `@neondatabase/serverless` (WebSocket, mitiga el cold start de Neon); sin ella usa `pg` contra `DB_HOST` (dev local).
+- Flujo completo con `curl` en [POSTMAN_ADMIN.md](./POSTMAN_ADMIN.md).
+
 ---
 
 ## Scripts
