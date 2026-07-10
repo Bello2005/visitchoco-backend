@@ -50,7 +50,7 @@ app.use("/api/fiestas", CACHE_1H, fiestasRoutes);
 app.use("/api/patrimonio", CACHE_1H, patrimonioRoutes);
 app.use("/api/rnt", CACHE_1H, rntRoutes);
 app.use("/api/population", CACHE_24H, populationRoutes);
-app.use("/api/establecimientos", establecimientosPublicRoutes);
+app.use("/api/establecimientos", CACHE_1H, establecimientosPublicRoutes);
 
 // Panel de administración (DEBE ir antes del verifyJWT global)
 app.use("/api/admin", adminRouter);
