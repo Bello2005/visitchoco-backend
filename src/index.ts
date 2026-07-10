@@ -120,5 +120,7 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ success: false, message: "Error interno del servidor" });
 });
 
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = Number(process.env.PORT) || 8000;
+// HOST=127.0.0.1 en producción detrás de nginx; por defecto 0.0.0.0 (dev, Vercel)
+const HOST = process.env.HOST || "0.0.0.0";
+app.listen(PORT, HOST, () => console.log(`Server running on ${HOST}:${PORT}`));
